@@ -27,7 +27,17 @@ class bistable:
   def addreg(self, nb):
     self.reg |= (1<<nb)
   
+  def rmreg(self, nb):
+    self.reg &= ~(1<<nb)
+  
+  def setreg(self, ios):
+    self.reg = ios&0xff
+  
   def send(self, onoff):
+    """
+    write(AT, 0x00, 0xff) enable all
+    write(AT, 0xff, 0x00) disable all
+    """
     ports=[self.reg, 0x00]
     if onoff:
       ports.reverse()
@@ -44,6 +54,9 @@ class bistable:
   
   def read(self, i):
     return GPIO.input(self.gpio[i])
+
+  def read8b(self):
+    return [GPIO.input(nb) for nb in self.gpio]
 
   
   
