@@ -1,29 +1,26 @@
 #!/usr/bin/env python
-import smbus, time; from time import sleep
+import smbus; from time import sleep
 bus=smbus.SMBus(1); AT=0x27 # ls /dev/i2c-1  => smbus(1)
-import RPi.GPIO as GPIO ; GPIO.setmode(GPIO.BOARD)
 
 
 class bistable:
   filename="register.txt"
-  
-  def __init__(self, AT=0x27, gpio=[31,33,35,37]):
-    self.version= "ebecheto-v1"
+  def __init__(self, AT=0x27, gpio=[31,33,35,37],filename=filename):
+    self.version= "ebecheto-v2"
     self.AT=AT
-    self.gpio=gpio
-    self.gpio.reverse()
-    [GPIO.setup(i, GPIO.IN) for i in self.gpio]
-    with open(self.filename, 'r') as f:
-      line1=f.readline()
-      line=line1 if line1!='' else '0b0'
-      base=2 if line[0:2]=="0b" else 10
-      ioss=int(line, base)
-      ios=ioss if 0<=ioss<2**8 else 0
+    try:
+      _reg = open(filename).read()
+    except IOError:
+      _reg = '0b0000'
+    _reg=_reg if _reg!='' else '0b0'
+    base=2 if _reg[0:2]=="0b" else 10
+    ioss=int(_reg, base)
+    ios=ioss if 0<=ioss<2**8 else 0
     self.reg=ios
   
-  def __del__(self):
-    FILE = open(self.filename,"w"); FILE.write("{}".format(self.reg)); FILE.close()
-  
+  def __del__(self,filename=filename):
+    open(filename, "w").write("0b{:08b}".format(self.reg))
+
   def addreg(self, nb):
     self.reg |= (1<<nb)
   
@@ -52,11 +49,14 @@ class bistable:
   def regs(self):
     return ["{}:{}".format(i, self.read(i)) for i in range(4)]
   
-  def read(self, i):
-    return GPIO.input(self.gpio[i])
+  def tic(self,onoff=1, tps=0.03):
+    self.send(onoff)# UP
+    sleep(tps)
+    self.release()# no more conso : relay maintained
 
-  def read8b(self):
-    return [GPIO.input(nb) for nb in self.gpio]
+  def tac(self,onoff=0, tps=0.03):
+    self.send(onoff)# UP
+    sleep(tps)
+    self.release()# no more conso : relay maintained
 
-  
   
